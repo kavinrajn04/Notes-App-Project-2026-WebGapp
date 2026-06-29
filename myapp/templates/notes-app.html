@@ -1,0 +1,365 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Notes - Notes App</title>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+        <link
+            href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&family=Oxygen:wght@300;400;700&display=swap"
+            rel="stylesheet"
+        />
+        <style>
+            :root {
+                --font-sans: Oxygen;
+            }
+            body {
+                margin: 0;
+                min-height: 100vh;
+                box-sizing: border-box;
+            }
+            #app {
+                display: flex;
+                height: 100dvh;
+                box-sizing: border-box;
+            }
+            #sidebar {
+                border-right: 1.5px solid hsl(0, 0%, 95%);
+                padding: 12px;
+                display: flex;
+                flex-direction: column;
+                gap: 40px;
+                width: 300px;
+                box-sizing: border-box;
+            }
+            #sidebar-title {
+                display: flex;
+                font-family: var(--font-sans);
+                align-items: center;
+                justify-content: space-between;
+                padding: 8px 0px;
+                margin-top: 10px;
+                font-weight: 700;
+            }
+            #add-notes-btn {
+                cursor: pointer;
+                background-color: white;
+                border: none;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                padding: 2px 8px;
+            }
+            #add-notes-btn:active {
+                box-shadow: none;
+                transition: 0.1s;
+            }
+            .logo {
+                font-family: var(--font-sans);
+                font-weight: 400;
+                font-size: 26px;
+                letter-spacing: -0.1rem;
+            }
+            #notes-list {
+                display: flex;
+                flex-direction: column;
+                gap: 6px;
+            }
+            #note-item {
+                background-color: white;
+                cursor: pointer;
+                padding: 15px;
+                box-sizing: border-box;
+                border-radius: 50px;
+                border: none;
+            }
+            #note-item.active {
+                background-color: hsl(0, 0%, 97%);
+            }
+            svg {
+                stroke-width: 1.5px;
+                stroke: hsl(0, 0%, 50%);
+                width: 25px;
+                height: 25px;
+            }
+            .note-header {
+                display: flex;
+                gap: 10px;
+                align-items: center;
+                justify-content: space-between;
+            }
+            .note-title {
+                font-family: var(--font-sans);
+                font-size: 16px;
+                font-weight: 550;
+
+            }
+            .note-created {
+                font-family: var(--font-sans);
+                font-weight: 400;
+                color: hsl(0, 0%, 60%);
+            }
+            #editor {
+                flex: 1;
+                padding: 18px;
+                height: 100dvh;
+                box-sizing: border-box;
+            }
+            #editor-header {
+                margin: 10px auto;
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                background-color: hsl(0, 0%, 97%);
+                padding: 10px;
+                border-radius: 40px;
+            }
+            #editor-header-options {
+                display: flex;
+                gap: 6px;
+                align-items: center;
+            }
+            #editor-title {
+                border: none;
+                outline: none;
+                font-size: large;
+                font-weight: 550;
+                font-family: var(--font-sans);
+                background-color: hsl(0, 0%, 97%);
+            }
+            #textarea-tag {
+                box-sizing: border-box;
+                margin: 0 auto;
+                padding: 20px;
+                font-size: small;
+                border: none;
+                resize: none;
+                outline: none;
+                height: 100dvh;
+                font-family: var(--font-sans);
+                width: 100%;
+                text-align: left;
+            }
+            #save-notes-btn {
+                cursor: pointer;
+                background-color: rgb(0, 162, 255);
+                border: none;
+                border-radius: 20px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                padding: 6px 12px;
+                font-family: var(--font-sans);
+                font-size: small;
+                color: white;
+            }
+            .delete-note-btn {
+                cursor: pointer;
+                background-color: hsl(0, 0%, 97%);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                padding: 2px 8px;
+                font-family: var(--font-sans);
+                font-size: small;
+                font-weight: 500;
+                border: none;
+            }
+        </style>
+    </head>
+    <body>
+        <div id="app">
+            <section id="sidebar">
+                <div id="sidebar-title">
+                    <span class="logo">Scribe</span>
+                    <button id="add-notes-btn">
+                        <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            width="24"
+                            height="24"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="#000000"
+                            stroke-width="1.25"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            class="lucide lucide-plus-icon lucide-plus"
+                        >
+                            <path d="M5 12h14" />
+                            <path d="M12 5v14" />
+                        </svg>
+                    </button>
+                </div>
+                <div id="notes-list">
+                    <div id="notes-empty" hidden>No notes yet. Click "+” to create one.</div>
+                </div>
+            </section>
+            <section id="editor"></section>
+        </div>
+        <script>
+            const notesList = document.getElementById("notes-list")
+            const notesEmpty = document.getElementById("notes-empty")
+            const editArea = document.getElementById("editor")
+
+            let currentNoteId = null
+
+            document.getElementById("add-notes-btn").addEventListener("click", async () => {
+                const res = await fetch("/api/notes/", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ title: "Untitled", content: "" }),
+                })
+
+                const text = await res.text()
+                console.log("POST status:", res.status, "response:", text)
+
+                if (!res.ok) {
+                    alert("Create failed. Open console for details.")
+                    return
+                }
+
+                const newNote = JSON.parse(text)
+                currentNoteId = newNote.id
+                await loadNotes()
+                renderEditor(newNote)
+            })
+
+            function renderNotes(notes) {
+                notesList.innerHTML = ""
+                editArea.innerHTML = ""
+                if (!Array.isArray(notes) || notes.length === 0) {
+                    notesEmpty.hidden = false
+                    return
+                }
+                notesEmpty.hidden = true
+
+                for (const note of notes) {
+                    const item = document.createElement("button")
+                    item.id = "note-item"
+                    item.classList.add("note-item-btn")
+                    if (note.id === currentNoteId) item.classList.add("active")
+
+                    item.addEventListener("click", () => {
+                        document.querySelectorAll(".note-item-btn").forEach((el) => el.classList.remove("active"))
+                        item.classList.add("active")
+                        renderEditor(note)
+                    })
+
+                    item.innerHTML = `<div class="note-header">
+                        <div class="note-title">${note.title ?? "(no title)"}</div>
+                        <div><span class="note-created">${formatDateOnly(note.created_at) ?? ""}</span></div>
+                    </div>
+                    `
+                    notesList.appendChild(item)
+                }
+                if (currentNoteId == null) {
+                    notesList.firstElementChild.classList.add("active")
+                    renderEditor(notes[0])
+                }
+            }
+
+            async function loadNotes() {
+                const res = await fetch("/api/notes/")
+                if (!res.ok) throw new Error("Failed to load notes")
+
+                const data = await res.json()
+
+                // If your backend returns { notes: [...] } instead of [...]
+                const notes = Array.isArray(data) ? data : (data.notes ?? [])
+
+                renderNotes(notes)
+            }
+
+            document.addEventListener("DOMContentLoaded", () => {
+                loadNotes().catch(() => {
+                    notesEmpty.hidden = false
+                    notesEmpty.textContent = "Could not load notes."
+                })
+            })
+
+            function formatDateOnly(v) {
+                if (!v) return ""
+                const d = new Date(v)
+                if (Number.isNaN(d.getTime())) return ""
+                const dd = String(d.getDate()).padStart(2, "0")
+                const mm = String(d.getMonth() + 1).padStart(2, "0")
+                const yyyy = d.getFullYear()
+                return `${dd}/${mm}/${yyyy}`
+            }
+
+            function renderEditor(note) {
+                currentNoteId = note.id
+
+                editArea.innerHTML = `
+      <div id="editor-header">
+        <input id="editor-title" type="text" value="${escapeHtml(note.title ?? "(no title)")}">
+        <div id="editor-header-options">
+
+            <button class="delete-note-btn" data-id="${note.id}" type="button"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-x-icon lucide-x"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg></button>
+
+            <button id="save-notes-btn" type="button">Save
+            </button>
+        </div>
+    </div>
+      <div id="text-area">
+        <textarea id="textarea-tag" placeholder="Start typing...">${escapeHtml(note.content ?? "")}</textarea>
+      </div>
+    `
+
+                document.getElementById("save-notes-btn").addEventListener("click", async () => {
+                    if (!currentNoteId) {
+                        alert("No note selected")
+                        return
+                    }
+
+                    const title = document.getElementById("editor-title").value
+                    const content = document.getElementById("textarea-tag").value
+
+                    const res = await fetch("/api/notes/", {
+                        method: "PUT",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ id: currentNoteId, title, content }),
+                    })
+
+                    const text = await res.text()
+                    console.log("PUT status:", res.status, "response:", text)
+
+                    if (!res.ok) alert("Save failed. Open console for details.")
+                    else await loadNotes()
+                })
+
+                document.querySelector(".delete-note-btn").addEventListener("click", async (e) => {
+                    e.stopPropagation()
+
+                    const res = await fetch("/api/notes/", {
+                        method: "DELETE",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ id: note.id }),
+                    })
+
+                    if (!res.ok) {
+                        alert("Delete failed. Open console for details.")
+                        return
+                    }
+
+                    if (note.id === currentNoteId) {
+                        currentNoteId = null
+                        editArea.innerHTML = ""
+                    }
+
+                    await loadNotes()
+                })
+            }
+
+            function escapeHtml(s) {
+                return String(s ?? "")
+                    .replaceAll("&", "&amp;")
+                    .replaceAll("<", "&lt;")
+                    .replaceAll(">", "&gt;")
+                    .replaceAll('"', "&quot;")
+                    .replaceAll("'", "&#039;")
+            }
+        </script>
+    </body>
+</html>
